@@ -1,6 +1,6 @@
 {
   "name": "pdf-compress",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Compress PDF files with ES Modules support",
   "author": "Muhamad Syamsudin (@udenbaguse)",
   "license": "MIT",
@@ -31,10 +31,11 @@
     "sharp": "^0.34.0"
   },
   "files": [
-    "src/*/",
+    "src",
     "LICENSE",
     "package.json",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "keywords": [
     "pdf",
