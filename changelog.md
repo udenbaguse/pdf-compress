@@ -11,8 +11,15 @@ All notable changes to this project will be documented here.
 ---
 ## [1.0.1]
 ### Fixed
+- Fixed cannt found compressor
+
+---
+
+## [1.0.1]
+### Fixed
 - Fixed commander not found on error message
 
+---
 ## [1.0.0] - Initial Release 26-04-2026
 
 ### Added
