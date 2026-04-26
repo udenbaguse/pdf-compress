@@ -22,7 +22,7 @@ npm install -g pdf-compress
 need to install ghostscript
 
 **Windows:**
-Download the installer from the [Ghostscript official website](https://ghostscript.com/releases/gs-release.html), or install via Winget:
+Download the installer from the [Ghostscript official website](https://www.ghostscript.com/releases/gsdnld.html), or install via Winget:
 ```bash
 winget install Ghostscript.Ghostscript
 ```
