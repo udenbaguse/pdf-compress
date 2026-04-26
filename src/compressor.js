@@ -50,39 +50,6 @@ async function collectPdfFiles(targetPath) {
   return files;
 }
 
-async function renderPageToImage(page, scale = 2) {
-  const viewport = page.getViewport({ scale });
-
-  const canvas = {
-    width: viewport.width,
-    height: viewport.height,
-  };
-
-  const canvasFactory = {
-    create(width, height) {
-      return {
-        canvas: { width, height },
-        context: {},
-      };
-    },
-
-    reset(canvasAndContext, width, height) {
-      canvasAndContext.canvas.width = width;
-      canvasAndContext.canvas.height = height;
-    },
-
-    destroy() {},
-  };
-
-  await page.render({
-    canvasContext: canvasFactory.create(canvas.width, canvas.height).context,
-    viewport,
-    canvasFactory,
-  }).promise;
-
-  return Buffer.alloc(0);
-}
-
 /**
  * Kompres PDF
  */
@@ -94,7 +61,12 @@ export async function compressPdf(inputPath, outputPath = null, options = {}) {
 
   const maxWidth = getResizeWidth(quality);
 
-  const pdfBytes = await readFile(inputPath);
+  /**
+   * readFile() => Buffer
+   * pdfjs-dist butuh Uint8Array
+   */
+  const pdfBuffer = await readFile(inputPath);
+  const pdfBytes = new Uint8Array(pdfBuffer);
 
   /**
    * Parse source PDF
@@ -110,6 +82,12 @@ export async function compressPdf(inputPath, outputPath = null, options = {}) {
    */
   const outputPdf = await PDFDocument.create();
 
+  /**
+   * Load original PDF sekali saja
+   * (lebih efisien daripada load tiap page)
+   */
+  const originalPdf = await PDFDocument.load(pdfBytes);
+
   for (let pageNumber = 1; pageNumber <= sourcePdf.numPages; pageNumber++) {
     const sourcePage = await sourcePdf.getPage(pageNumber);
 
@@ -118,9 +96,7 @@ export async function compressPdf(inputPath, outputPath = null, options = {}) {
     });
 
     /**
-     * Render page as image-based PDF page
-     * Aggressive optimization strategy:
-     * rebuild every page as optimized image
+     * Check image object
      */
     if (!noImage) {
       const operatorList = await sourcePage.getOperatorList();
@@ -141,14 +117,12 @@ export async function compressPdf(inputPath, outputPath = null, options = {}) {
 
       if (embedded || imageOnly) {
         /**
-         * Placeholder render buffer
-         * In production this would use node-canvas.
-         * Here we keep buffer-safe flow.
+         * sementara pakai source PDF bytes
+         * untuk image optimization pipeline
          */
+        const imageBuffer = Buffer.from(pdfBytes);
 
-        const fakeImageBuffer = Buffer.from(pdfBytes);
-
-        const optimizedImage = await optimizeImage(fakeImageBuffer, {
+        const optimizedImage = await optimizeImage(imageBuffer, {
           quality,
           format: "jpeg",
           maxWidth,
@@ -171,10 +145,8 @@ export async function compressPdf(inputPath, outputPath = null, options = {}) {
 
     /**
      * fallback:
-     * preserve original page objects
+     * preserve original page
      */
-    const originalPdf = await PDFDocument.load(pdfBytes);
-
     const [copiedPage] = await outputPdf.copyPages(originalPdf, [
       pageNumber - 1,
     ]);

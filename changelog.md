@@ -11,6 +11,11 @@ All notable changes to this project will be documented here.
 ---
 ## [1.0.1]
 ### Fixed
+- Fixed provide binary Uint8array error when using pdf-lib for PDF rebuilding
+
+---
+## [1.0.1]
+### Fixed
 - Fixed cannt found compressor
 
 ---

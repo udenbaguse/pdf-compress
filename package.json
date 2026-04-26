@@ -1,6 +1,6 @@
 {
   "name": "pdf-compress",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Compress PDF files with ES Modules support",
   "author": "Muhamad Syamsudin (@udenbaguse)",
   "license": "MIT",
