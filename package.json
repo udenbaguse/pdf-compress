@@ -1,0 +1,45 @@
+{
+  "name": "pdf-compress",
+  "version": "1.0.0",
+  "description": "Compress PDF files with ES Modules support",
+  "author": "Muhamad Syamsudin (@udenbaguse)",
+  "license": "MIT",
+  "homepage": "https://github.com/udenbaguse/pdf-compress#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/udenbaguse/pdf-compress.git"
+  },
+  "bugs": {
+    "url": "https://github.com/udenbaguse/pdf-compress/issues"
+  },
+  "type": "module",
+  "main": "./src/index.js",
+  "bin": {
+    "pdf-compress": "./src/cli.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "pdf-compress": "node ./src/cli.js",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "commander": "^13.0.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "5.0.375",
+    "sharp": "^0.34.0"
+  },
+  "files": [
+    "src/*/",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "keywords": [
+    "pdf",
+    "compress",
+    "pdf-compressor",
+    "cli"
+  ]
+}
