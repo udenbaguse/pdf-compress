@@ -1,8 +1,6 @@
-import { PDFDocument } from "pdf-lib";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-import { readFile, writeFile, stat, readdir } from "fs/promises";
+import { stat, readdir } from "fs/promises";
+import { spawn } from "child_process";
 import path from "path";
-import { optimizeImage } from "./image-optimizer.js";
 
 function getOutputPath(inputPath, customOutput) {
   if (customOutput) return customOutput;
@@ -12,21 +10,14 @@ function getOutputPath(inputPath, customOutput) {
   return path.join(parsed.dir, `${parsed.name}-compressed${parsed.ext}`);
 }
 
-function getQualityFromLevel(level = "high") {
+function getPdfSetting(level = "high") {
   const map = {
-    low: 40,
-    medium: 70,
-    high: 100,
+    low: "/screen",
+    medium: "/ebook",
+    high: "/printer",
   };
 
-  return map[level] ?? 100;
-}
-
-function getResizeWidth(quality) {
-  if (quality <= 40) return 1200;
-  if (quality <= 70) return 1800;
-
-  return null;
+  return map[level] ?? "/printer";
 }
 
 async function collectPdfFiles(targetPath) {
@@ -50,122 +41,48 @@ async function collectPdfFiles(targetPath) {
   return files;
 }
 
-/**
- * Kompres PDF
- */
-export async function compressPdf(inputPath, outputPath = null, options = {}) {
-  const quality = options.quality ?? getQualityFromLevel(options.level);
+function runGhostscript(inputPath, outputPath, level) {
+  return new Promise((resolve, reject) => {
+    const gsCommand = process.platform === "win32" ? "gswin64c" : "gs";
 
-  const noImage = options.noImage ?? false;
-  const imageOnly = options.imageOnly ?? false;
+    const args = [
+      "-sDEVICE=pdfwrite",
+      "-dCompatibilityLevel=1.4",
+      "-dNOPAUSE",
+      "-dQUIET",
+      "-dBATCH",
+      `-dPDFSETTINGS=${getPdfSetting(level)}`,
+      `-sOutputFile=${outputPath}`,
+      inputPath,
+    ];
 
-  const maxWidth = getResizeWidth(quality);
+    const processGs = spawn(gsCommand, args);
 
-  /**
-   * readFile() => Buffer
-   * pdfjs-dist butuh Uint8Array
-   */
-  const pdfBuffer = await readFile(inputPath);
-  const pdfBytes = new Uint8Array(pdfBuffer);
+    processGs.on("error", reject);
 
-  /**
-   * Parse source PDF
-   */
-  const loadingTask = pdfjsLib.getDocument({
-    data: pdfBytes,
-  });
-
-  const sourcePdf = await loadingTask.promise;
-
-  /**
-   * Build new optimized PDF
-   */
-  const outputPdf = await PDFDocument.create();
-
-  /**
-   * Load original PDF sekali saja
-   * (lebih efisien daripada load tiap page)
-   */
-  const originalPdf = await PDFDocument.load(pdfBytes);
-
-  for (let pageNumber = 1; pageNumber <= sourcePdf.numPages; pageNumber++) {
-    const sourcePage = await sourcePdf.getPage(pageNumber);
-
-    const viewport = sourcePage.getViewport({
-      scale: 2,
+    processGs.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Ghostscript exited with code ${code}`));
+      }
     });
-
-    /**
-     * Check image object
-     */
-    if (!noImage) {
-      const operatorList = await sourcePage.getOperatorList();
-
-      let embedded = false;
-
-      for (let i = 0; i < operatorList.fnArray.length; i++) {
-        const fn = operatorList.fnArray[i];
-
-        if (
-          fn === pdfjsLib.OPS.paintImageXObject ||
-          fn === pdfjsLib.OPS.paintJpegXObject
-        ) {
-          embedded = true;
-          break;
-        }
-      }
-
-      if (embedded || imageOnly) {
-        /**
-         * sementara pakai source PDF bytes
-         * untuk image optimization pipeline
-         */
-        const imageBuffer = Buffer.from(pdfBytes);
-
-        const optimizedImage = await optimizeImage(imageBuffer, {
-          quality,
-          format: "jpeg",
-          maxWidth,
-        });
-
-        const image = await outputPdf.embedJpg(optimizedImage);
-
-        const page = outputPdf.addPage([viewport.width, viewport.height]);
-
-        page.drawImage(image, {
-          x: 0,
-          y: 0,
-          width: viewport.width,
-          height: viewport.height,
-        });
-
-        continue;
-      }
-    }
-
-    /**
-     * fallback:
-     * preserve original page
-     */
-    const [copiedPage] = await outputPdf.copyPages(originalPdf, [
-      pageNumber - 1,
-    ]);
-
-    outputPdf.addPage(copiedPage);
-  }
-
-  const compressedPdfBytes = await outputPdf.save({
-    useObjectStreams: !imageOnly,
-    addDefaultPage: false,
-    objectsPerTick: 50,
   });
+}
 
+export async function compressPdf(inputPath, outputPath = null, options = {}) {
   outputPath = getOutputPath(inputPath, outputPath);
 
-  await writeFile(outputPath, compressedPdfBytes);
+  const level = options.level ?? "high";
 
-  const originalSize = pdfBytes.length;
-  const compressedSize = compressedPdfBytes.length;
+  const before = await stat(inputPath);
+
+  await runGhostscript(inputPath, outputPath, level);
+
+  const after = await stat(outputPath);
+
+  const originalSize = before.size;
+  const compressedSize = after.size;
 
   return {
     inputPath,

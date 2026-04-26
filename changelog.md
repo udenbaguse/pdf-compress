@@ -9,6 +9,11 @@
 All notable changes to this project will be documented here.
 
 ---
+## [2.0.0]
+### Change
+- now use ghostscript to compress pdf
+
+---
 ## [1.0.1]
 ### Fixed
 - Fixed provide binary Uint8array error when using pdf-lib for PDF rebuilding

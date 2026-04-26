@@ -19,6 +19,30 @@ Install globally:
 ```bash
 npm install -g pdf-compress
 ```
+need to install ghostscript
+
+**Windows:**
+Download the installer from the [Ghostscript official website](https://ghostscript.com/releases/gs-release.html), or install via Winget:
+```bash
+winget install Ghostscript.Ghostscript
+```
+
+---
+
+**Mac:**
+
+install via Homebrew:
+```bash
+brew install ghostscript
+```
+**Linux(Ubuntu/Debian):**
+
+```bash
+sudo apt update
+sudo apt install ghostscript
+```
+(For other Linux distributions, use your default package manager like dnf or pacman to install ghostscript).
+
 ---
 
 ## Why pdf-compress?

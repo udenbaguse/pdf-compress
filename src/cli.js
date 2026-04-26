@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+import { checkGhostscript } from "./check-ghostscript.js";
 import { program } from "commander";
 import { compressMultiple } from "./compressor.js";
 import packageJson from "../package.json" with { type: "json" };
@@ -27,6 +27,7 @@ program
   .option("--image-only", "compress image only")
   .action(async (paths, options) => {
     try {
+      await checkGhostscript();
       let level = "high";
 
       if (options.qLow) level = "low";
